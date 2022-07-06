@@ -1,0 +1,15 @@
+{
+  "name": "p2p-node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "node.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "minimist": "^1.2.6",
+    "wrtc": "^0.4.7"
+  }
+}

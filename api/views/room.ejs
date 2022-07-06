@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" class="flex flex-grow h-full w-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>videoChatApp</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://kit.fontawesome.com/c939d0e917.js"></script>
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="flex flex-grow h-full w-full bg-slate-900">
+    <div id="app" class="flex flex-grow h-full w-full p-6">
+      <video class="h-full w-full bg-slate-700 m-0" autoplay></video>
+    </div>
+  </body>
+  <script>
+    const { createApp } = Vue
+  
+    createApp({
+
+      data() {
+        return {
+          connectionStatusInterval: 0,
+          connectionStatus: {},
+          peerConnection: new RTCPeerConnection({sdpSemantics: 'unified-plan'})
+        }
+      },
+
+      methods: {
+        createWebRtcConnection: function() {
+          fetch('/api/v1/webrtc_connection', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+          })
+          .then(response => response.json())
+          .then(data => this.startConnectionStatusInterval());
+        },
+        getConnectionStatus: function() {
+          fetch('/api/v1/webrtc_connection')
+          .then(response => response.json())
+          .then(data => {
+            this.connectionStatus = data;
+            if(this.connectionStatus.offerCreated) {
+              clearInterval(this.connectionStatusInterval);
+              this.establishConnection();
+            }
+          });
+        },
+        startConnectionStatusInterval: function() {
+          var self = this;
+          clearInterval(this.connectionStatusInterval);
+          this.connectionStatusInterval = setInterval(function() {
+            self.getConnectionStatus();
+          }, 1000);
+        },
+        async establishConnection() {
+          this.peerConnection.setRemoteDescription(this.connectionStatus.localDescription);
+          var peerAnswer = await this.peerConnection.createAnswer();
+          await this.peerConnection.setLocalDescription(peerAnswer);
+          var localDescription = this.peerConnection.localDescription;
+          fetch('/api/v1/webrtc_connection/answer', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(localDescription)
+          })
+          .then(response => response.json())
+          .then(data => console.log(data));
+        },
+        sendAnswer: function() {
+          
+        }
+      },
+
+      async mounted() {
+        this.createWebRtcConnection();
+
+        console.log(window.navigator.mediaDevices);
+        const localVideo = document.querySelector('video');
+        const localStream = await window.navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: true
+        });
+        console.log(localStream);
+        localVideo.srcObject = localStream;
+        localStream.getTracks().forEach(track => this.peerConnection.addTrack(track, localStream));
+      }
+
+    }).mount('#app')
+  </script>  
+</html>
