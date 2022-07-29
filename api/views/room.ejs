@@ -12,7 +12,14 @@
   </head>
   <body class="flex flex-grow h-full w-full bg-slate-900">
     <div id="app" class="flex flex-grow h-full w-full p-6">
-      <video class="h-full w-full bg-slate-700 m-0" autoplay></video>
+      <div class="flex flex-grow grid grid-cols-2 gap-6">
+        <div>
+          <video id="myvideo" class="h-full w-full bg-slate-700 m-0" autoplay></video>
+        </div>
+        <div>
+          <video id="remotevideo" class="h-full w-full bg-slate-700 m-0" autoplay></video>
+        </div>
+      </div>
     </div>
   </body>
   <script>
@@ -79,7 +86,7 @@
 
       async mounted() {
         console.log(window.navigator.mediaDevices);
-        const localVideo = document.querySelector('video');
+        const localVideo = document.querySelector('#myvideo');
         const localStream = await window.navigator.mediaDevices.getUserMedia({
           audio: true,
           video: true
@@ -87,6 +94,11 @@
         console.log(localStream);
         localVideo.srcObject = localStream;
         localStream.getTracks().forEach(track => this.peerConnection.addTrack(track, localStream));
+
+        const remoteVideo = document.querySelector('#remotevideo');
+        const remoteStream = new MediaStream(this.peerConnection.getReceivers().map(receiver => receiver.track));
+        console.log(remoteStream);
+        remoteVideo.srcObject = remoteStream;
 
         this.createWebRtcConnection();
       }

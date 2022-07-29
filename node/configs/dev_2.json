@@ -1,0 +1,16 @@
+{
+  "interface_port": 3010,
+  "messaging": {
+    "port": 2010
+  },
+  "av": {
+    "port": 2011
+  },
+  "peers": [
+    {
+      "address": "127.0.0.1", 
+      "messaging_port": 2000,
+      "av_port": 2001
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "interface_port": 3000,
+  "messaging": {
+    "host": "127.0.0.1",
+    "port": 2000
+  },
+  "av": {
+    "host": "127.0.0.1",
+    "port": 2001
+  },
+  "peers": [
+    {
+      "address": "127.0.0.1", 
+      "messaging_port": 2010,
+      "av_port": 2011
+    }
+  ]
+}

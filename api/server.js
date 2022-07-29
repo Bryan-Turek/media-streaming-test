@@ -36,4 +36,4 @@ app.get("/", (req, res) => {
 
 app.use(require("./v1/webrtc_connection"));
 
-server.listen(3030);
+server.listen(config.listen_port);

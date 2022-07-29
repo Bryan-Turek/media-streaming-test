@@ -4,7 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js --config=./configs/dev.json",
+    "dev_1": "nodemon server.js --config=./configs/dev_1.json",
+    "dev_2": "nodemon server.js --config=./configs/dev_2.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

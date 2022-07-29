@@ -18,5 +18,23 @@ if(!(envConfigFile || args.config)) {
 const config = require(args.config || envConfigFile);
 console.log(config);
 
-const InterfaceManager = require("./interface_manager");
+//Initialize the Audio and Video transceiver
+const avTransceiver = require('./av_transceiver');
+const AudioVideoTransceiver = new avTransceiver(config.av);
+
+// Initialize Peers
+const peerManager = require("./peer_manager");
+const PeerManager = new peerManager(config.messaging);
+PeerManager.on('addedPeers', function(peers) {
+  AudioVideoTransceiver.setPeers(peers);
+});
+PeerManager.addPeers(config.peers);
+
+//Initialize the WebRTC connection
+const wrtcConnection = require('./webrtc_connection');
+const WebRtcConnectionInstance = new wrtcConnection(AudioVideoTransceiver);
+
+//Setup the InterfaceManager
+const ifManager = require("./interface_manager");
+const InterfaceManager = new ifManager(WebRtcConnectionInstance);
 InterfaceManager.listen(config.interface_port);

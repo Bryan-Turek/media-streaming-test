@@ -1,15 +1,16 @@
 const DefaultRTCPeerConnection = require('wrtc').RTCPeerConnection;
 const EventEmitter = require('events');
+const { time } = require('console');
 const { PassThrough } = require('stream');
-const { RTCAudioSink, RTCVideoSink } = require('wrtc').nonstandard;
+const { RTCVideoSource, RTCAudioSink, RTCVideoSink } = require('wrtc').nonstandard;
 
-const TIME_TO_CONNECTED = 10000;
+const TIME_TO_CONNECTED = 100000;
 const TIME_TO_HOST_CANDIDATES = 3000;  // NOTE(mroberts): Too long.
 const TIME_TO_RECONNECTED = 10000;
 
 class WebRtcConnection extends EventEmitter {
 
-  constructor() {
+  constructor(transceiver) {
     super();
     this._offer_created = false;
 
@@ -20,23 +21,64 @@ class WebRtcConnection extends EventEmitter {
     this._audioTransceiver = this._peerConnection.addTransceiver('audio');
     this._videoTransceiver = this._peerConnection.addTransceiver('video');
 
+    this._remoteVideoSource = new RTCVideoSource();
+    this._remoteVideoTrack = this._remoteVideoSource.createTrack();
+    this._videoTransceiver.sender.replaceTrack(this._remoteVideoTrack);
+
     this._audioSink = new RTCAudioSink(this._audioTransceiver.receiver.track);
     this._videoSink = new RTCVideoSink(this._videoTransceiver.receiver.track);
 
-    this._videoSink.addEventListener('frame', ({ frame: frame }) => {
+    this._frameCount = 0;
+    this._framesSinceLastCheck = 0;
+    this._framesPerSecond = 0;
+
+    var self = this;
+
+    transceiver.on('frame', (frame) => {
       console.log(frame);
+      self._remoteVideoSource.onFrame(frame);
+    });
+
+    this._videoSink.addEventListener('frame', ({ frame }) => {
+      transceiver.transmit(frame);
+      if(!self._frameTime) {
+        console.log("WebRtcConnection initializing start time")
+        self._frameTime = new Date();
+        self.startFPSInterval();
+      }
+      self._frameCount++;
     });
 
     var self = this;
-    this._connectionTimer = setTimeout(() => {
-      if (self._peerConnection.iceConnectionState !== 'connected'
-        && self._peerConnection.iceConnectionState !== 'completed') {
-          self.close();
-      }
-    }, TIME_TO_CONNECTED);
+    // this._connectionTimer = setTimeout(() => {
+    //   if (self._peerConnection.iceConnectionState !== 'connected'
+    //     && self._peerConnection.iceConnectionState !== 'completed') {
+    //       self.close();
+    //   }
+    // }, TIME_TO_CONNECTED);
     this._reconnectionTimer = null;
 
     this._peerConnection.addEventListener('iceconnectionstatechange', this.onIceConnectionStateChange);
+  }
+
+  startFPSInterval() {
+    clearInterval(this._fpsInterval);
+    var self = this;
+    this._fpsInterval = setInterval(function() {
+      let timeBefore = self._frameTime;
+      let now = new Date();
+      let frameCount = self._frameCount - self._framesSinceLastCheck;
+      let fps = frameCount / (now.getSeconds() - timeBefore.getSeconds());
+      self._framesPerSecond = fps;
+      self._framesSinceLastCheck = self._frameCount;
+      // console.log(frameCount, now.getSeconds(), timeBefore.getSeconds());
+      // console.log(`Frames per second: ${fps}`);
+      self._frameTime = now;
+    }, 1000);
+  }
+
+  getFPS() {
+    return this._framesPerSecond;
   }
 
   async createOffer() {
@@ -116,6 +158,7 @@ class WebRtcConnection extends EventEmitter {
   }
 
   close() {
+    console.log("Closing connection!");
     this._peerConnection.removeEventListener(
       'iceconnectionstatechange', this.onIceConnectionStateChange);
     if (this._connectionTimer) {
@@ -140,4 +183,4 @@ class WebRtcConnection extends EventEmitter {
 
 }
 
-module.exports = new WebRtcConnection();
+module.exports = WebRtcConnection;
